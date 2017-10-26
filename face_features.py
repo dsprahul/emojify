@@ -17,8 +17,6 @@ class FaceFeatures(object):
         self.nose_clf = cv2.CascadeClassifier("haarcascade_clfs/nose.xml")
         self.lips_clf = cv2.CascadeClassifier("haarcascade_clfs/mouth.xml")
 
-        # Objects identified
-
     @staticmethod
     def apply_bb(array, bb):
         x, y, w, h = bb
@@ -146,16 +144,36 @@ class FaceFeatures(object):
         all_face_structures = []
         for face_bb in all_faces:
 
+            face_im = self.apply_bb(array=self.gray_image, bb=face_bb)
+
             these_eyes = self.get_eyes(face_bb=face_bb)
+            if these_eyes is not None:
+                eyes_im = self.apply_bb(array=face_im, bb=these_eyes)
+            else:
+                eyes_im = None
+
             this_nose = self.get_nose(face_bb=face_bb, eyes_bb=these_eyes)
+            if this_nose is not None:
+                nose_im = self.apply_bb(array=face_im, bb=this_nose)
+            else:
+                nose_im = None
+
             this_mouth = self.get_mouth(face_bb=face_bb, nose_bb=this_nose)
+            if this_mouth is not None:
+                mouth_im = self.apply_bb(array=face_im, bb=this_mouth)
+            else:
+                mouth_im = None
 
             my_face = dict()
             my_face.update({
-                "face": face_bb,
-                "eyes": these_eyes,
-                "nose": this_nose,
-                "mouth": this_mouth
+                "face": {"bb": face_bb,
+                         "im": face_im},
+                "eyes": {"bb": these_eyes,
+                         "im": eyes_im},
+                "nose": {"bb": this_nose,
+                         "im": nose_im},
+                "mouth": {"bb": this_mouth,
+                          "im": mouth_im}
             })
 
             all_face_structures.append(my_face)
@@ -180,7 +198,7 @@ if __name__ == "__main__":
                 print("There are %d faces in this image" % len(faces_structs))
 
                 for face_struct in faces_structs:
-                    face_bb = face_struct["face"]
+                    face_bb = face_struct["face"]["bb"]
                     if face_bb is not None:
                         x, y, w, h = face_bb
                         cv2.rectangle(input_image, (x, y),
@@ -188,19 +206,19 @@ if __name__ == "__main__":
 
                         face_region = input_image[y:y + h, x:x + w]
 
-                    eyes_bb = face_struct["eyes"]
+                    eyes_bb = face_struct["eyes"]["bb"]
                     if eyes_bb is not None:
                         x, y, w, h = eyes_bb
                         cv2.rectangle(face_region, (x, y),
                                       (x + w, y + h), (0, 255, 0), 2)
 
-                    nose_bb = face_struct["nose"]
+                    nose_bb = face_struct["nose"]["bb"]
                     if nose_bb is not None:
                         x, y, w, h = nose_bb
                         cv2.rectangle(face_region, (x, y),
                                       (x + w, y + h), (0, 0, 255), 2)
 
-                    mouth_bb = face_struct["mouth"]
+                    mouth_bb = face_struct["mouth"]["bb"]
                     if mouth_bb is not None:
                         x, y, w, h = mouth_bb
                         cv2.rectangle(face_region, (x, y),
