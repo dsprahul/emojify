@@ -46,7 +46,11 @@ class FaceFeatures(object):
 
     def get_faces(self):
 
-        return self.face_clf.detectMultiScale(self.gray_image)
+        faces = self.face_clf.detectMultiScale(self.gray_image,
+                                               minNeighbors=3,
+                                               minSize=(200, 200))
+
+        return faces
 
     def get_eyes(self, face_bb):
         """ Finds eyes with-in the given face bounding box """
@@ -73,7 +77,13 @@ class FaceFeatures(object):
         face_region = self.apply_bb(array=self.gray_image, bb=face_bb)
         noses = self.nose_clf.detectMultiScale(face_region)
 
-        if len(noses) == 1:
+        if len(noses) == 0:
+            return None
+
+        elif len(noses) == 1:
+            return noses[0]
+
+        elif eyes_bb is None:
             return noses[0]
 
         else:
@@ -103,7 +113,13 @@ class FaceFeatures(object):
         face_region = self.apply_bb(array=self.gray_image, bb=face_bb)
         mouths = self.lips_clf.detectMultiScale(face_region)
 
-        if len(mouths) == 1:
+        if len(mouths) == 0:
+            return None
+
+        elif len(mouths) == 1:
+            return mouths[0]
+
+        elif nose_bb is None:
             return mouths[0]
 
         else:
@@ -137,6 +153,23 @@ class FaceFeatures(object):
 
         return self.face_clf.detectMultiScale(self.gray_image)
 
+    def build_face_structures_only(self):
+
+        all_faces = self.find_faces()
+
+        all_face_structures = []
+        for face_bb in all_faces:
+            face_im = self.apply_bb(array=self.gray_image, bb=face_bb)
+            my_face = {
+                "face": {
+                    "bb": face_bb,
+                    "im": face_im
+                }
+            }
+            all_face_structures.append(my_face)
+
+        return all_face_structures
+
     def build_face_structures(self):
 
         all_faces = self.find_faces()
@@ -167,7 +200,9 @@ class FaceFeatures(object):
             my_face = dict()
             my_face.update({
                 "face": {"bb": face_bb,
-                         "im": face_im},
+                         "im": face_im,
+                         "im_c": self.apply_bb(self.input_image,
+                                               bb=face_bb)},
                 "eyes": {"bb": these_eyes,
                          "im": eyes_im},
                 "nose": {"bb": this_nose,
